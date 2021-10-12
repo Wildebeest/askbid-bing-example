@@ -2,7 +2,19 @@
   "name": "askbid-bing",
   "version": "0.1.0",
   "description": "A bot that echoes the top 10 bing results for askbid searches",
-  "main": "index.js",
+  "main": "index.ts",
   "license": "MIT",
-  "scripts": {"start": "node index.js"}
+  "scripts": {
+    "start": "node dist/index.js",
+    "postinstall": "tsc",
+  },
+  "dependencies": {
+    "@solana/web3.js": "^1.29.2",
+    "borsh": "^0.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^16.10.4",
+    "ts-node": "^10.3.0",
+    "typescript": "^4.4.4"
+  }
 }
