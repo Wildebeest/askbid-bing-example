@@ -1,0 +1,8 @@
+{
+  "name": "askbid-bing",
+  "version": "0.1.0",
+  "description": "A bot that echoes the top 10 bing results for askbid searches",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {"start": "node index.js"}
+}
