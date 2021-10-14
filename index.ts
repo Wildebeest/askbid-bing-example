@@ -7,9 +7,9 @@ import {
     PublicKey,
     SystemProgram, SYSVAR_RENT_PUBKEY, Transaction, TransactionInstruction
 } from "@solana/web3.js";
-import {MintLayout, TOKEN_PROGRAM_ID} from "@solana/spl-token";
+import {MintLayout, TOKEN_PROGRAM_ID, Token, AccountLayout} from "@solana/spl-token";
 import {
-    CreateResult,
+    CreateResult, Deposit,
     Instruction,
     InstructionSchema,
     PROGRAM_ID, ResultAccount, ResultAccountSchema,
@@ -70,7 +70,7 @@ const SUBSCRIPTION_KEY = process.env.AZURE_SUBSCRIPTION_KEY!;
                 const resultKeypair = Keypair.generate();
                 const [mintAuthorityKey, mintAuthorityBumpSeed] = await PublicKey.findProgramAddress(
                     [new Buffer("mint_authority", "ascii")], PROGRAM_ID);
-                const instructionData = borsh.serialize(InstructionSchema, new Instruction({
+                const createResultData = borsh.serialize(InstructionSchema, new Instruction({
                     instruction: "CreateResult",
                     CreateResult: new CreateResult(webPage.url, webPage.name, webPage.snippet, mintAuthorityBumpSeed),
                 }));
@@ -111,7 +111,7 @@ const SUBSCRIPTION_KEY = process.env.AZURE_SUBSCRIPTION_KEY!;
                     space: MintLayout.span,
                 });
 
-                const transactionInstruction = new TransactionInstruction({
+                const createResultInstruction = new TransactionInstruction({
                     keys: [
                         {
                             pubkey: resultKeypair.publicKey,
@@ -148,7 +148,7 @@ const SUBSCRIPTION_KEY = process.env.AZURE_SUBSCRIPTION_KEY!;
                             isSigner: false,
                             isWritable: false,
                         },
-                    ], programId: PROGRAM_ID, data: Buffer.from(instructionData)
+                    ], programId: PROGRAM_ID, data: Buffer.from(createResultData)
                 });
                 const recentBlockhash = (await connection.getRecentBlockhash()).blockhash;
                 const accountCreations = [{
@@ -167,11 +167,103 @@ const SUBSCRIPTION_KEY = process.env.AZURE_SUBSCRIPTION_KEY!;
                 });
                 await Promise.all(accountCreations);
 
-                const transaction = (new Transaction({recentBlockhash, feePayer: fromWallet.publicKey}))
-                    .add(transactionInstruction);
-                const resultSignature = await connection.sendTransaction(transaction, [fromWallet]);
+                const resultTransaction = (new Transaction({recentBlockhash, feePayer: fromWallet.publicKey}))
+                    .add(createResultInstruction);
+                const resultSignature = await connection.sendTransaction(resultTransaction, [fromWallet]);
                 await connection.confirmTransaction(resultSignature);
                 console.log("Result signature: ", resultSignature);
+
+                const tokenRentExemptAmount = await connection.getMinimumBalanceForRentExemption(AccountLayout.span);
+                const yesTokenKeypair = Keypair.generate();
+                const yesTokenAccountInstruction = SystemProgram.createAccount({
+                    fromPubkey: fromWallet.publicKey,
+                    programId: TOKEN_PROGRAM_ID,
+                    newAccountPubkey: yesTokenKeypair.publicKey,
+                    lamports: tokenRentExemptAmount,
+                    space: AccountLayout.span,
+                });
+                const yesTokenInstruction = Token.createInitAccountInstruction(
+                    TOKEN_PROGRAM_ID, yesMintKeypair.publicKey, yesTokenKeypair.publicKey, fromWallet.publicKey);
+
+                const noTokenKeypair = Keypair.generate();
+                const noTokenAccountInstruction = SystemProgram.createAccount({
+                    fromPubkey: fromWallet.publicKey,
+                    programId: TOKEN_PROGRAM_ID,
+                    newAccountPubkey: noTokenKeypair.publicKey,
+                    lamports: tokenRentExemptAmount,
+                    space: AccountLayout.span,
+                });
+                const noTokenInstruction = Token.createInitAccountInstruction(
+                    TOKEN_PROGRAM_ID, noMintKeypair.publicKey, noTokenKeypair.publicKey, fromWallet.publicKey);
+
+                const depositData = borsh.serialize(InstructionSchema, new Instruction({
+                    instruction: "Deposit",
+                    Deposit: new Deposit(1),
+                }));
+                const depositInstruction = new TransactionInstruction({
+                    keys: [
+                        {
+                            pubkey: keyedAccountInfo.accountId,
+                            isSigner: false,
+                            isWritable: false,
+                        },
+                        {
+                            pubkey: resultKeypair.publicKey,
+                            isSigner: false,
+                            isWritable: true,
+                        },
+                        {
+                            pubkey: fromWallet.publicKey,
+                            isSigner: true,
+                            isWritable: true,
+                        },
+                        {
+                            pubkey: SystemProgram.programId,
+                            isSigner: false,
+                            isWritable: false,
+                        },
+                        {
+                            pubkey: TOKEN_PROGRAM_ID,
+                            isSigner: false,
+                            isWritable: false,
+                        },
+                        {
+                            pubkey: mintAuthorityKey,
+                            isSigner: false,
+                            isWritable: true,
+                        },
+                        {
+                            pubkey: yesMintKeypair.publicKey,
+                            isSigner: false,
+                            isWritable: true,
+                        },
+                        {
+                            pubkey: yesTokenKeypair.publicKey,
+                            isSigner: false,
+                            isWritable: true,
+                        },
+                        {
+                            pubkey: noMintKeypair.publicKey,
+                            isSigner: false,
+                            isWritable: true,
+                        },
+                        {
+                            pubkey: noTokenKeypair.publicKey,
+                            isSigner: false,
+                            isWritable: true,
+                        },
+                    ], programId: PROGRAM_ID, data: Buffer.from(depositData)
+                });
+
+                const depositTransaction = (new Transaction({recentBlockhash, feePayer: fromWallet.publicKey}))
+                    .add(yesTokenAccountInstruction)
+                    .add(yesTokenInstruction)
+                    .add(noTokenAccountInstruction)
+                    .add(noTokenInstruction)
+                    .add(depositInstruction);
+                const depositSignature = await connection.sendTransaction(depositTransaction, [fromWallet, yesTokenKeypair, noTokenKeypair]);
+                await connection.confirmTransaction(depositSignature);
+                console.log("Deposit signature: ", depositSignature);
             });
             await Promise.all(resultTransactions);
         }

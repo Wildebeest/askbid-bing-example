@@ -6,11 +6,13 @@ const PROGRAM_ID = new PublicKey("CtRJbPMscDFRJptvh6snF5GJXDNCJHMFsfYoczds37AV")
 class Instruction {
     CreateMarket?: CreateMarket;
     CreateResult?: CreateResult;
+    Deposit?: Deposit;
     instruction: string;
 
-    constructor(fields: { instruction: string, CreateMarket?: CreateMarket, CreateResult?: CreateResult }) {
+    constructor(fields: { instruction: string, CreateMarket?: CreateMarket, CreateResult?: CreateResult, Deposit?: Deposit }) {
         this.CreateMarket = fields.CreateMarket;
         this.CreateResult = fields.CreateResult;
+        this.Deposit = fields.Deposit;
         this.instruction = fields.instruction;
     }
 }
@@ -42,6 +44,19 @@ class CreateResult {
     }
 }
 
+class Deposit {
+    amount: number;
+
+    constructor(amount: number) {
+        this.amount = amount;
+    }
+}
+
+const DepositSchema = [Deposit, {
+    kind: 'struct',
+    fields: [['amount', 'u64']]
+}];
+
 const CreateResultSchema = [CreateResult, {
     kind: 'struct',
     fields: [['url', 'string'], ['name', 'string'], ['snippet', 'string'], ['bump_seed', 'u8']]
@@ -50,7 +65,7 @@ const CreateResultSchema = [CreateResult, {
 const InstructionWrapperSchema = [Instruction, {
     kind: 'enum',
     field: 'instruction',
-    values: [['CreateMarket', {}], ["CreateResult", {}]]
+    values: [['CreateMarket', {}], ["CreateResult", {}], ["Deposit", {}]]
 }];
 const CreateMarketSchema = [CreateMarket, {
     kind: 'struct',
@@ -61,7 +76,8 @@ const CreateMarketSchema = [CreateMarket, {
 const InstructionSchema: borsh.Schema = new Map([
     InstructionWrapperSchema,
     CreateMarketSchema,
-    CreateResultSchema]);
+    CreateResultSchema,
+    DepositSchema]);
 
 class SearchMarketAccount {
     decision_authority: Uint8Array;
@@ -140,4 +156,6 @@ export {
     SearchMarketAccount,
     ResultAccount,
     ResultAccountSchema,
+    Deposit,
+    DepositSchema,
 };
