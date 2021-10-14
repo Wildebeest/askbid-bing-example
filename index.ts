@@ -52,7 +52,7 @@ const SUBSCRIPTION_KEY = process.env.AZURE_SUBSCRIPTION_KEY!;
     const airdropSig = await connection.requestAirdrop(fromWallet.publicKey, LAMPORTS_PER_SOL);
     await connection.confirmTransaction(airdropSig);
     console.log("Airdrop signature: ", airdropSig);
-    connection.onProgramAccountChange(PROGRAM_ID, async (keyedAccountInfo: KeyedAccountInfo, _context: Context) => {
+    const onProgramAccountChange = async (keyedAccountInfo: KeyedAccountInfo, _context: Context) => {
         if (keyedAccountInfo.accountInfo.data.compare(new Uint8Array(keyedAccountInfo.accountInfo.data.length)) === 0) {
             return;
         }
@@ -175,7 +175,8 @@ const SUBSCRIPTION_KEY = process.env.AZURE_SUBSCRIPTION_KEY!;
             });
             await Promise.all(resultTransactions);
         }
-    });
+    };
+    connection.onProgramAccountChange(PROGRAM_ID, onProgramAccountChange);
 })();
 
 import {IncomingMessage, ServerResponse} from "http";

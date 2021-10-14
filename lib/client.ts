@@ -16,11 +16,11 @@ class Instruction {
 }
 
 class CreateMarket {
-    expires_slot: number;
+    expires_slot_offset: number;
     search_string: string;
 
-    constructor(expires_slot: number, search_string: string) {
-        this.expires_slot = expires_slot;
+    constructor(expires_slot_offset: number, search_string: string) {
+        this.expires_slot_offset = expires_slot_offset;
         this.search_string = search_string;
     }
 }
@@ -54,7 +54,7 @@ const InstructionWrapperSchema = [Instruction, {
 }];
 const CreateMarketSchema = [CreateMarket, {
     kind: 'struct',
-    fields: [['expires_slot', 'u64'], ['search_string', 'string']]
+    fields: [['expires_slot_offset', 'u64'], ['search_string', 'string']]
 }];
 
 // @ts-ignore
