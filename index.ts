@@ -283,7 +283,7 @@ const SUBSCRIPTION_KEY = process.env.AZURE_SUBSCRIPTION_KEY!;
         });
         const sellYesCreateOrderData = borsh.serialize(InstructionSchema, new Instruction({
             instruction: "CreateOrder",
-            CreateOrder: new CreateOrder(sellYesOrder.side, sellYesOrder.price, sellYesOrder.quantity, sellYesOrder.escrow_bump_seed),
+            CreateOrder: new CreateOrder(sellYesOrder.side, sellYesOrder.price.toNumber(), sellYesOrder.quantity.toNumber(), sellYesOrder.escrow_bump_seed),
         }));
 
         const sellYesCreateOrderInstruction = new TransactionInstruction({
@@ -326,6 +326,11 @@ const SUBSCRIPTION_KEY = process.env.AZURE_SUBSCRIPTION_KEY!;
             if (keyedAccountInfo.accountInfo.data[0] === 0) {
                 const account = borsh.deserialize(SearchMarketAccountSchema, SearchMarketAccount, keyedAccountInfo.accountInfo.data);
                 console.log(account);
+                const bestResult = new PublicKey(account.best_result);
+                if (bestResult.toString() !== PublicKey.default.toString()) {
+                    console.log("Decided. Skipping...");
+                    return;
+                }
 
                 const query = encodeURIComponent(account.search_string);
                 const response = await fetch("https://api.bing.microsoft.com/v7.0/search?q=" + query, {
