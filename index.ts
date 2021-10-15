@@ -49,7 +49,7 @@ interface BingSearchResponse {
 
 const SUBSCRIPTION_KEY = process.env.AZURE_SUBSCRIPTION_KEY!;
 (async () => {
-    const connection = new Connection(process.env.ENDPOINT!);
+    const connection = new Connection(process.env.ENDPOINT!, 'confirmed');
     const fromWallet = Keypair.generate();
     console.log("Wallet public key: ", fromWallet.publicKey.toString());
     const airdropSig = await connection.requestAirdrop(fromWallet.publicKey, LAMPORTS_PER_SOL);
