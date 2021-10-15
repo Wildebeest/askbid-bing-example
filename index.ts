@@ -52,9 +52,6 @@ const SUBSCRIPTION_KEY = process.env.AZURE_SUBSCRIPTION_KEY!;
     const connection = new Connection(process.env.ENDPOINT!, 'confirmed');
     const fromWallet = Keypair.generate();
     console.log("Wallet public key: ", fromWallet.publicKey.toString());
-    const airdropSig = await connection.requestAirdrop(fromWallet.publicKey, LAMPORTS_PER_SOL);
-    await connection.confirmTransaction(airdropSig);
-    console.log("Airdrop signature: ", airdropSig);
 
     const processWebPage = async (searchMarketPubkey: PublicKey, webPage: BingWebPage, index: number) => {
         const resultKeypair = Keypair.generate();
@@ -319,6 +316,13 @@ const SUBSCRIPTION_KEY = process.env.AZURE_SUBSCRIPTION_KEY!;
     };
 
     const onProgramAccountChange = async (keyedAccountInfo: KeyedAccountInfo, _context: Context) => {
+        const balance = await connection.getBalance(fromWallet.publicKey);
+        if (balance <= LAMPORTS_PER_SOL * 0.01) {
+            const airdropSig = await connection.requestAirdrop(fromWallet.publicKey, LAMPORTS_PER_SOL);
+            await connection.confirmTransaction(airdropSig);
+            console.log("Airdrop signature: ", airdropSig);
+        }
+
         try {
             if (keyedAccountInfo.accountInfo.data.compare(new Uint8Array(keyedAccountInfo.accountInfo.data.length)) === 0) {
                 return;
