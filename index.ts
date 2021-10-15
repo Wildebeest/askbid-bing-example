@@ -56,7 +56,7 @@ const SUBSCRIPTION_KEY = process.env.AZURE_SUBSCRIPTION_KEY!;
     await connection.confirmTransaction(airdropSig);
     console.log("Airdrop signature: ", airdropSig);
 
-    const processWebPage = async (searchMarketPubkey: PublicKey, webPage: BingWebPage) => {
+    const processWebPage = async (searchMarketPubkey: PublicKey, webPage: BingWebPage, index: number) => {
         const resultKeypair = Keypair.generate();
         const [mintAuthorityKey, mintAuthorityBumpSeed] = await PublicKey.findProgramAddress(
             [new Buffer("mint_authority", "ascii")], PROGRAM_ID);
@@ -265,7 +265,7 @@ const SUBSCRIPTION_KEY = process.env.AZURE_SUBSCRIPTION_KEY!;
             sol_account: fromWallet.publicKey.toBytes(),
             token_account: yesTokenKeypair.publicKey.toBytes(),
             side: 1,
-            price: LAMPORTS_PER_TOKEN * 0.2,
+            price: LAMPORTS_PER_TOKEN * (0.2 - 0.01 * index),
             quantity: 1,
             escrow_bump_seed: sellYesBumpSeed,
             creation_slot: 0,
@@ -333,7 +333,7 @@ const SUBSCRIPTION_KEY = process.env.AZURE_SUBSCRIPTION_KEY!;
                 });
                 const bingResponse: BingSearchResponse = await response.json();
                 console.log(bingResponse);
-                const resultTransactions = bingResponse.webPages.value.map(webPage => processWebPage(keyedAccountInfo.accountId, webPage));
+                const resultTransactions = bingResponse.webPages.value.map((webPage, index) => processWebPage(keyedAccountInfo.accountId, webPage, index));
                 await Promise.all(resultTransactions);
             }
         } catch (err) {
