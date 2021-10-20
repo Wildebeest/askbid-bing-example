@@ -19,6 +19,10 @@ import {
 } from "./lib/client";
 import * as borsh from "borsh";
 import fetch from 'cross-fetch';
+import Bugsnag from "@bugsnag/js";
+if (process.env.BUGSNAG_API_KEY) {
+    Bugsnag.start(process.env.BUGSNAG_API_KEY);
+}
 
 interface BingWebPage {
     id: string,
@@ -347,6 +351,10 @@ const SUBSCRIPTION_KEY = process.env.AZURE_SUBSCRIPTION_KEY!;
             }
         } catch (err) {
             console.error(err);
+            if (process.env.BUGSNAG_API_KEY) {
+                // @ts-ignore
+                Bugsnag.notify(err);
+            }
         }
     };
     connection.onProgramAccountChange(PROGRAM_ID, onProgramAccountChange);
