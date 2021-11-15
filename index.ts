@@ -319,20 +319,22 @@ const SUBSCRIPTION_KEY = process.env.AZURE_SUBSCRIPTION_KEY!;
         console.log("Yes Order signature: ", sellYesOrderSignature);
     };
 
+    const airdropConnection = new Connection(process.env.AIRDROP_ENDPOINT || process.env.ENDPOINT!, 'confirmed');
     const onProgramAccountChange = async (keyedAccountInfo: KeyedAccountInfo, _context: Context) => {
-        const balance = await connection.getBalance(fromWallet.publicKey);
+        const balance = await airdropConnection.getBalance(fromWallet.publicKey);
         if (balance <= LAMPORTS_PER_SOL * 0.01) {
-            const airdropSig = await connection.requestAirdrop(fromWallet.publicKey, LAMPORTS_PER_SOL);
-            await connection.confirmTransaction(airdropSig);
+            const airdropSig = await airdropConnection.requestAirdrop(fromWallet.publicKey, LAMPORTS_PER_SOL);
+            await airdropConnection.confirmTransaction(airdropSig);
             console.log("Airdrop signature: ", airdropSig);
         }
 
+        let account: SearchMarketAccount;
         try {
             if (keyedAccountInfo.accountInfo.data.compare(new Uint8Array(keyedAccountInfo.accountInfo.data.length)) === 0) {
                 return;
             }
             if (keyedAccountInfo.accountInfo.data[0] === 0) {
-                const account = borsh.deserialize(SearchMarketAccountSchema, SearchMarketAccount, keyedAccountInfo.accountInfo.data);
+                account = borsh.deserialize(SearchMarketAccountSchema, SearchMarketAccount, keyedAccountInfo.accountInfo.data);
                 console.log(account);
                 const bestResult = new PublicKey(account.best_result);
                 if (bestResult.toString() !== PublicKey.default.toString()) {
@@ -353,7 +355,10 @@ const SUBSCRIPTION_KEY = process.env.AZURE_SUBSCRIPTION_KEY!;
             console.error(err);
             if (process.env.BUGSNAG_API_KEY) {
                 // @ts-ignore
-                Bugsnag.notify(err);
+                Bugsnag.notify(err, (event) => {
+                    event.addMetadata("searchMarketId", keyedAccountInfo.accountId);
+                    event.addMetadata("searchMarket", account);
+                });
             }
         }
     };
